@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Moirai+One&display=swap" rel="stylesheet">
+    <title>후~ 불어봐</title>
+    <style type="text/css">
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: "Moirai One", system-ui;
+            font-style: normal;
+        }
+
+        h1 {
+            position: absolute;
+            font-size: 2rem;
+            top: 30px;
+            left: 50%;
+            color: whitesmoke;
+            transform: translateX(-50%);
+            z-index: 90;
+        }
+
+        #bkimg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 50;
+        }
+
+        #bkimg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 50%;
+        }
+
+        #videoFeed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 10;
+        }
+
+        #cottonCandyImage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 90;
+            transition: opacity 0.2s;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bkimg">
+        <img src="amuse.jpg">
+    </div>
+
+    <h1 id="titleText">Click!</h1>
+
+    <video id="videoFeed" autoplay playsinline></video>
+    <img id="cottonCandyImage" alt="솜사탕 이미지">
+
+    <audio id="soundEffect" src="effect.mp3" preload="auto"></audio>
+
+    <script type="text/javascript">
+        const cottonCandyImage = document.getElementById('cottonCandyImage');
+
+// localStorage에서 이미지 데이터 가져오기
+const savedImageURL = localStorage.getItem('cottonCandyImage');
+
+if (savedImageURL) {
+    cottonCandyImage.src = savedImageURL;
+}
+
+
+        const soundEffect = document.getElementById('soundEffect');
+
+        // 카메라 접근
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                const videoFeed = document.getElementById('videoFeed');
+                videoFeed.srcObject = stream;
+                document.getElementById('titleText').innerText = "세게 후~ 불어봐";
+            } catch (error) {
+                console.error('카메라 접근 오류:', error);
+                alert('카메라에 접근할 수 없습니다. 권한을 확인하세요.');
+            }
+        }
+
+        async function setupAudio() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const analyser = audioContext.createAnalyser();
+            const source = audioContext.createMediaStreamSource(stream);
+            source.connect(analyser);
+            analyser.fftSize = 2048;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            let soundDetectedTime = 0;
+            let isImageFaded = false;
+            const soundThreshold = 50;
+
+            function fadeOutImage() {
+                let opacity = parseFloat(cottonCandyImage.style.opacity || 1);
+                const fadeInterval = setInterval(() => {
+                    if (opacity > 0) {
+                        opacity -= 0.02;
+                        cottonCandyImage.style.opacity = opacity;
+                    } else {
+                        clearInterval(fadeInterval);
+                        playEffectAndShowAlert()
+                    }
+                }, 50);
+            }
+
+            // 효과음 재생 및 alert 창 띄우기
+            function playEffectAndShowAlert() {
+                soundEffect.play();
+                setTimeout(() => {
+                    alert("환영합니다~ 이 곳은 놀이공원입니다...");
+                }, 0);
+            }
+
+            function detectSound() {
+                analyser.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((sum, value) => sum + value) / dataArray.length;
+
+                if (average > soundThreshold) {
+                    soundDetectedTime += 100;
+                } else {
+                    soundDetectedTime = 0;
+                }
+
+                if (soundDetectedTime >= 1000 && !isImageFaded) {
+                    fadeOutImage();
+                    isImageFaded = true;
+                }
+
+                requestAnimationFrame(detectSound);
+            }
+
+            detectSound();
+        }
+
+        document.body.addEventListener('click', async () => {
+            try {
+                await setupCamera();
+                await setupAudio();
+            } catch (error) {
+                console.error('오류:', error);
+            }
+        });
+    </script>
+</body>
+</html>

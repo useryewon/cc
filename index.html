@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Moirai+One&display=swap" rel="stylesheet">
+	<title>너만의 솜사탕</title>
+
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			align-items: center;
+			background-color: #f0f0f0;
+			font-family: "Moirai One", system-ui;
+			font-style: normal;
+		}
+
+		h1 {
+			position: absolute;
+			font-size: 2rem;
+			top: 30px;
+			left: 50%;
+			color: #ff69b4;
+			transform: translateX(-50%);
+			z-index: 50;
+		}
+
+		canvas {
+			display: block;
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+		}
+
+		#controls {
+			position: absolute;
+			top: 80px;
+			left: 50%;
+			transform: translateX(-50%);
+			padding: 30px;
+			border-radius: 8px;
+			z-index: 50;
+			display: flex;
+			gap: 20px;
+			color: #ff69b4;
+			align-items: center
+		}
+
+		#brushSizeLabel {
+			font-size: 16px;
+			color: #ff69b4;
+		}
+
+		input[type="range"] {
+			-webkit-appearance: none;
+			width: 150px;
+			height: 8px;
+			border-radius: 5px;
+			background: #ff69b4;
+			outline: none;
+			opacity: 0.7;
+			transition: opacity 0.2s;
+		}
+
+		input[type="range"]::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			appearance: none;
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background: #ff69b4;
+			cursor: pointer;
+			transition: background-color 0.3s ease;
+		}
+
+		input[type="range"]::-moz-range-thumb {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background: #ff69b4;
+			cursor: pointer;
+			transition: background-color 0.3s ease;
+		}
+
+		#completeButton {
+			color: #ff69b4;
+			background-color: rgb(255,0,0,0);
+			border: rgb(255,0,0,0);
+			padding: 13px 10px;
+			border-radius: 50%;
+			cursor: pointer;
+			font-size: 16px;
+			z-index: 50;
+			font-family: "Moirai One", system-ui;
+			font-style: normal;
+		}
+
+		#completeButton:hover {
+			background-color: white;
+		}
+
+	</style>
+</head>
+<body>
+
+	<h1 id="titleText">
+		너만의 솜사탕을 그려봐
+	</h1>
+
+    <canvas id="cottonCandyCanvas"></canvas>
+
+    <div id="controls">
+        <label for="colorPicker">색상 선택:</label>
+        <input type="color" id="colorPicker" value="#ff69b4">
+        
+        <label id="brushSizeLabel" for="brushSize">브러쉬 크기: <span id="brushSizeValue">200</span>px</label>
+        <input type="range" id="brushSize" min="10" max="400" value="200" step="10">
+        
+        <button id="completeButton">
+        	<a href="second.html">완성</a>
+    	</button>
+    </div>
+
+    <video id="videoFeed" autoplay playsinline></video>
+
+    <script type="text/javascript">
+        const canvas = document.getElementById('cottonCandyCanvas');
+        const ctx = canvas.getContext('2d');
+        const titleText = document.getElementById('titleText');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSizeInput = document.getElementById('brushSize');
+        const brushSizeValue = document.getElementById('brushSizeValue');
+        const completeButton = document.getElementById('completeButton');
+        let drawing = false;
+
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        ctx.lineCap = "round";
+        ctx.lineWidth = brushSizeInput.value;
+        ctx.strokeStyle = colorPicker.value;
+
+        colorPicker.addEventListener('input', (e) => {
+            const selectedColor = e.target.value;
+            ctx.strokeStyle = selectedColor;
+            titleText.style.color = selectedColor;
+            controls.style.color = selectedColor;
+            colorPicker.style.color = selectedColor;
+            brushSizeLabel.style.color = selectedColor;
+            completeButton.style.color = selectedColor;
+
+            brushSizeInput.style.background = selectedColor;
+            brushSizeInput.style.setProperty('--thumb-color', selectedColor);
+
+            const style = document.createElement('style');
+            style.innerHTML = `
+                input[type="range"]::-webkit-slider-thumb {
+                    background: ${selectedColor};
+                }
+                input[type="range"]::-moz-range-thumb {
+                    background: ${selectedColor};
+                }
+            `;
+            document.head.appendChild(style);
+        });
+
+        brushSizeInput.addEventListener('input', (e) => {
+            const selectedSize = e.target.value;
+            ctx.lineWidth = selectedSize;
+            brushSizeValue.textContent = selectedSize;
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            drawing = true;
+            draw(e);
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            drawing = false;
+            ctx.beginPath();
+        });
+
+        canvas.addEventListener('mousemove', draw);
+
+        function draw(e) {
+            if (!drawing) return;
+
+            ctx.lineTo(e.clientX, e.clientY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX, e.clientY);
+        }
+
+        completeButton.addEventListener('click', () => {
+			    const imageURL = canvas.toDataURL();
+			    localStorage.setItem('cottonCandyImage', imageURL);
+			    window.location.href = 'second.html';
+			});
+
+        
+    </script>
+
+</body>
+</html>
